@@ -93,3 +93,12 @@ sys_uptime(void)
   release(&tickslock);
   return xticks;
 }
+
+int 
+sys_setp(void)
+{
+	uint policy;
+	argint(0, &policy);
+	setp(policy);
+	return 0;
+}

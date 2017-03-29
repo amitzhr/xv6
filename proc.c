@@ -7,6 +7,8 @@
 #include "proc.h"
 #include "spinlock.h"
 
+static int g_policy = 0;
+
 struct {
   struct spinlock lock;
   struct proc proc[NPROC];
@@ -178,6 +180,11 @@ fork(void)
   release(&ptable.lock);
 
   return pid;
+}
+
+void
+setp(uint policy) {
+	g_policy = policy;
 }
 
 // Exit the current process.  Does not return.
