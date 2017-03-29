@@ -22,6 +22,20 @@ extern void trapret(void);
 
 static void wakeup1(void *chan);
 
+static unsigned long int g_seed = 1;
+
+int rand(int ticketsSum) // RAND_MAX assumed to be 32767
+{
+	g_seed = g_seed * 1103515245 + 12345;
+	int rand = (unsigned int)(g_seed / (2 * (ticketsSum + 1)) % (ticketsSum + 1));
+	return rand;
+}
+
+void srand(unsigned int seed)
+{
+	g_seed = seed;
+}
+
 void
 pinit(void)
 {
@@ -74,6 +88,12 @@ found:
   p->context = (struct context*)sp;
   memset(p->context, 0, sizeof *p->context);
   p->context->eip = (uint)forkret;
+
+  switch (g_policy) {
+  case 0:
+	  p->ntickets = 1;
+	  break;
+  }
 
   return p;
 }
@@ -291,31 +311,63 @@ scheduler(void)
 {
   struct proc *p;
 
+  rand(ticks);
+
   for(;;){
     // Enable interrupts on this processor.
     sti();
 
-    // Loop over process table looking for process to run.
-    acquire(&ptable.lock);
-    for(p = ptable.proc; p < &ptable.proc[NPROC]; p++){
-      if(p->state != RUNNABLE)
-        continue;
+	// Count the total number of ntickets
+	uint total_tickets = 0;
+	acquire(&ptable.lock);
 
-      // Switch to chosen process.  It is the process's job
-      // to release ptable.lock and then reacquire it
-      // before jumping back to us.
-      proc = p;
-      switchuvm(p);
-      p->state = RUNNING;
-      swtch(&cpu->scheduler, p->context);
-      switchkvm();
+	for (p = ptable.proc; p < &ptable.proc[NPROC]; p++) {
+		if (p->state != RUNNABLE)
+			continue;
+		if (p->ntickets != 1) {
+			cprintf("NO\n");
+		}
+		total_tickets += p->ntickets;
+	}
 
-      // Process is done running for now.
-      // It should have changed its p->state before coming back.
-      proc = 0;
-    }
-    release(&ptable.lock);
+	if (total_tickets > 1) {
+		cprintf("total tickets: %d\n", total_tickets);
+	}
 
+	int ticket = rand(total_tickets);
+
+	if (total_tickets > 1) {
+		cprintf("Ticket allocated: %d\n", ticket);
+	}
+
+	// Loop over process table looking for process to run.
+	uint current_ticket = 0;
+	for (p = ptable.proc; p < &ptable.proc[NPROC]; p++) {
+		if (p->state != RUNNABLE)
+			continue;
+		current_ticket += p->ntickets;
+
+		//cprintf("Current ticket: %d", current_ticket);
+
+		if (ticket >= current_ticket) {
+			continue;
+		}
+
+		// Switch to chosen process.  It is the process's job
+		// to release ptable.lock and then reacquire it
+		// before jumping back to us.
+		proc = p;
+		switchuvm(p);
+		p->state = RUNNING;
+		swtch(&cpu->scheduler, p->context);
+		switchkvm();
+
+		// Process is done running for now.
+		// It should have changed its p->state before coming back.
+		proc = 0;
+	}
+
+	release(&ptable.lock);
   }
 }
 
