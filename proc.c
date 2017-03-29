@@ -183,7 +183,7 @@ fork(void)
 }
 
 void
-setp(uint policy) {
+setp(int policy) {
 	g_policy = policy;
 }
 

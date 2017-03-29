@@ -23,6 +23,15 @@ sys_exit(void)
 }
 
 int
+sys_setp(void)
+{
+	int policy;
+	argint(0, &policy);
+	setp(policy);
+	return 0;
+}
+
+int
 sys_wait(void)
 {
   int *status;
@@ -92,13 +101,4 @@ sys_uptime(void)
   xticks = ticks;
   release(&tickslock);
   return xticks;
-}
-
-int 
-sys_setp(void)
-{
-	uint policy;
-	argint(0, &policy);
-	setp(policy);
-	return 0;
 }
