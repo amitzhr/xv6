@@ -181,6 +181,7 @@ UPROGS=\
 	_zombie\
 	_exittest\
 	_policy\
+	_prioritytest\
 
 fs.img: mkfs README $(UPROGS)
 	./mkfs fs.img README $(UPROGS)

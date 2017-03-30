@@ -93,6 +93,9 @@ found:
   case 0:
 	  p->ntickets = 1;
 	  break;
+  case 1:
+	  p->ntickets = 10;
+	  break;
   }
 
   return p;
@@ -205,6 +208,35 @@ fork(void)
 void
 setp(int policy) {
 	g_policy = policy;
+	uint ntickets = 1;
+	struct proc* p;
+
+	switch (policy) {
+	case 0:
+		ntickets = 1;
+		break;
+	case 1:
+		ntickets = 10;
+		break;
+	case 2:
+		ntickets = 20;
+		break;
+	}
+
+	cprintf("The policy is now %d.\n", policy);
+	acquire(&ptable.lock);
+	for (p = ptable.proc; p < &ptable.proc[NPROC]; p++) {
+		p->ntickets = ntickets;
+	}
+	release(&ptable.lock);
+}
+
+void
+priority(int priority) {
+	if (g_policy != 1) {
+		cprintf("WARNING: Changing priority when policy isn't 1!\n");
+	}
+	proc->ntickets = priority;
 }
 
 // Exit the current process.  Does not return.
@@ -324,9 +356,6 @@ scheduler(void)
 	for (p = ptable.proc; p < &ptable.proc[NPROC]; p++) {
 		if (p->state != RUNNABLE)
 			continue;
-		if (p->ntickets != 1) {
-			cprintf("NO\n");
-		}
 		total_tickets += p->ntickets;
 	}
 

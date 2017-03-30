@@ -31,6 +31,15 @@ sys_setp(void)
 	return 0;
 }
 
+int 
+sys_priority(void) 
+{
+	uint p;
+	argint(0, (int*)&p);
+	priority(p);
+	return 0;
+}
+
 int
 sys_wait(void)
 {

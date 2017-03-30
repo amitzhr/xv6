@@ -5,6 +5,7 @@ struct rtcdate;
 int fork(void);
 int exit(int status) __attribute__((noreturn));
 void setp(int policy);
+void priority(int priority);
 int wait(int*);
 int pipe(int*);
 int write(int, void*, int);
