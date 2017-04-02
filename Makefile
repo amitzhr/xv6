@@ -182,7 +182,7 @@ UPROGS=\
 	_exittest\
 	_policy\
 	_prioritytest\
-	_sanity
+	_sanity\
 
 fs.img: mkfs README $(UPROGS)
 	./mkfs fs.img README $(UPROGS)

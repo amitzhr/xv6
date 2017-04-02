@@ -240,7 +240,7 @@ setp(int policy) {
 void
 priority(int priority) {
 	if (g_policy != 1) {
-		cprintf("WARNING: Changing priority when policy isn't 1!\n");
+		return;
 	}
 	proc->ntickets = priority;
 }
@@ -337,28 +337,50 @@ wait(int *status)
 }
 
 int wait_stat(int *status, struct perf* performance) {
-	int pid = wait(status);
+	struct proc *p;
+	int havekids, pid;
 
-	struct proc* p;
-	int found = 0;
+	acquire(&ptable.lock);
+	for (;;) {
+		// Scan through table looking for exited children.
+		havekids = 0;
+		for (p = ptable.proc; p < &ptable.proc[NPROC]; p++) {
+			if (p->parent != proc)
+				continue;
+			havekids = 1;
+			if (p->state == ZOMBIE) {
+				// Found one.
+				pid = p->pid;
+				kfree(p->kstack);
+				p->kstack = 0;
+				freevm(p->pgdir);
+				p->pid = 0;
+				p->parent = 0;
+				p->name[0] = 0;
+				p->killed = 0;
+				p->state = UNUSED;
 
-	if (pid != -1) {
-		acquire(&ptable.lock);
-		for (p = ptable.proc; p < &ptable.proc[NPROC] && !found; p++) {
-			if (p->pid == pid) {
 				performance->ctime = p->ctime;
 				performance->stime = p->stime;
 				performance->rutime = p->rutime;
 				performance->retime = p->retime;
 				performance->ttime = p->ttime;
-				found = 1;
+
+				if (status != 0)
+					*status = p->exit_status;
+				release(&ptable.lock);
+				return pid;
 			}
 		}
-		release(&ptable.lock);
 
-		if (!found) {
-			panic("wait_stat: Failed to find pid of waited process");
+		// No point waiting if we don't have any children.
+		if (!havekids || proc->killed) {
+			release(&ptable.lock);
+			return -1;
 		}
+
+		// Wait for children to exit.  (See wakeup1 call in proc_exit.)
+		sleep(proc, &ptable.lock);  //DOC: wait-sleep
 	}
 
 	return pid;
@@ -388,34 +410,24 @@ scheduler(void)
 	acquire(&ptable.lock);
 
 	for (p = ptable.proc; p < &ptable.proc[NPROC]; p++) {
-		if (p->state != RUNNABLE)
-			continue;
-		total_tickets += p->ntickets;
-	}
-
-	if (total_tickets > 1) {
-		cprintf("total tickets: %d\n", total_tickets);
+		if (p->state == RUNNABLE)
+			total_tickets += p->ntickets;
 	}
 
 	int ticket = rand(total_tickets);
 
-	if (total_tickets > 1) {
-		cprintf("Ticket allocated: %d\n", ticket);
-	}
-
 	// Loop over process table looking for process to run.
-	uint current_ticket = 0;
 	for (p = ptable.proc; p < &ptable.proc[NPROC]; p++) {
 		if (p->state != RUNNABLE)
 			continue;
-		current_ticket += p->ntickets;
 
-		//cprintf("Current ticket: %d", current_ticket);
+		if (ticket >= p->ntickets) 
+			ticket -= p->ntickets;
+		else 
+			break;
+	}
 
-		if (ticket >= current_ticket) {
-			continue;
-		}
-
+	if (p->state == RUNNABLE) {
 		// Switch to chosen process.  It is the process's job
 		// to release ptable.lock and then reacquire it
 		// before jumping back to us.
@@ -636,6 +648,7 @@ void updateProcessTimes() {
 			break;
 		case RUNNING:
 			p->rutime++;
+			break;
 		default:
 			break;
 		}
