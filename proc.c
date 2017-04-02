@@ -96,6 +96,9 @@ found:
   case 1:
 	  p->ntickets = 10;
 	  break;
+  case 2:
+	  p->ntickets = 20;
+	  break;
   }
 
   return p;
@@ -421,6 +424,13 @@ sched(void)
   if(readeflags()&FL_IF)
     panic("sched interruptible");
   intena = cpu->intena;
+
+  if (g_policy == 2) {
+	  proc->ntickets = proc->ntickets - 1;
+	  if (proc->ntickets < 1)
+		  proc->ntickets = 1;
+  }
+
   swtch(&proc->context, cpu->scheduler);
   cpu->intena = intena;
 }
@@ -482,6 +492,12 @@ sleep(void *chan, struct spinlock *lk)
   proc->chan = chan;
   proc->state = SLEEPING;
   sched();
+
+  if (g_policy == 2) {
+	  proc->ntickets = proc->ntickets + 10;
+	  if (proc->ntickets > 100)
+		  proc->ntickets = 100;
+  }
 
   // Tidy up.
   proc->chan = 0;
