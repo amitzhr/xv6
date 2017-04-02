@@ -7,7 +7,7 @@ void
 sanity(void)
 {
 	int waitingtime = 0, runningtime = 0, turnaroundtime = 0, numOfChilds = 30, donePID, childPID;
-	int i = 0, pid[40], start = 0, passed = 0, k = 0, consume = 0;
+	int i = 0, pid[40], beginTime = 0, timeElapsed = 0, k = 0, tempVar = 0;
 	int avgWaitingTime = 0, avgRunningTime = 0, avgTurnAroundTime = 0;
 	int avgWaitingTime1 = 0, avgRunningTime1 = 0, avgTurnAroundTime1 = 0;
 	int avgWaitingTime2 = 0, avgRunningTime2 = 0, avgTurnAroundTime2 = 0;
@@ -24,26 +24,22 @@ sanity(void)
 		if (pid[i] == 0) {
 			childPID = getpid();
 			if (childPID % 4 == 0) {
-				start = uptime();
-				passed = uptime();
-				while ((passed - start) < 30) {
-					consume = consume + 1; //using any command to comsume CPU time.
-					consume = consume * 1; //using any command to comsume CPU time.
-					consume = consume % 1; //using any command to comsume CPU time.
-					passed = uptime();
+				beginTime = uptime();
+				timeElapsed = uptime();
+				while ((timeElapsed - beginTime) < 30) {
+					tempVar = tempVar * tempVar + 5 / 3.0; // Spend some CPU time
+					timeElapsed = uptime();
 				}
 				exit(0);
 			}
 
 			if (childPID % 4 == 1) {
 				priority(100);
-				start = uptime();
-				passed = uptime();
-				while ((passed - start) < 30) {
-					consume = consume + 1; //using any command to comsume CPU time.
-					consume = consume * 1; //using any command to comsume CPU time.
-					consume = consume % 1; //using any command to comsume CPU time.
-					passed = uptime();
+				beginTime = uptime();
+				timeElapsed = uptime();
+				while ((timeElapsed - beginTime) < 30) {
+					tempVar = tempVar * tempVar + 5 / 3.0; // Spend some CPU time
+					timeElapsed = uptime();
 				}
 				exit(0);
 			}
@@ -55,13 +51,11 @@ sanity(void)
 
 			if (childPID % 4 == 3) {
 				for (k = 0; k < 5; k++) {
-					start = uptime();
-					passed = uptime();
-					while ((passed - start) < 5) {
-						consume = consume + 1; //using any command to comsume CPU time.
-						consume = consume * 1; //using any command to comsume CPU time.
-						consume = consume % 1; //using any command to comsume CPU time.
-						passed = uptime();
+					beginTime = uptime();
+					timeElapsed = uptime();
+					while ((timeElapsed - beginTime) < 5) {
+						tempVar = tempVar * tempVar + 5 / 3.0; // Spend some CPU time
+						timeElapsed = uptime();
 					}
 					sleep(1);
 				}
@@ -72,7 +66,7 @@ sanity(void)
 	}
 
 	for (i = 0; i < 40; i++) {
-		donePID = wait_stat(0, &performance);   // Parent process waits here for child to terminate. 
+		donePID = wait_stat(0, &performance);
 		waitingtime = performance.retime;
 		runningtime = performance.rutime;
 		turnaroundtime = performance.ttime - performance.ctime;
