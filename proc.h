@@ -65,7 +65,16 @@ struct proc {
   char name[16];               // Process name (debugging)
   int exit_status;
   uint ntickets;
+  int ctime;
+  int ttime;
+  int stime;
+  int retime;
+  int rutime;
 };
+
+static int g_policy = 0;
+
+void updateProcessTimes();
 
 // Process memory is laid out contiguously, low addresses first:
 //   text

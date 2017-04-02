@@ -111,3 +111,13 @@ sys_uptime(void)
   release(&tickslock);
   return xticks;
 }
+
+int sys_wait_stat(void) {
+	int *status;
+	struct perf *performance;
+
+	argint(0, (int*)&status);
+	argint(1, (int*)&performance);
+
+	return wait_stat(status, performance);
+}

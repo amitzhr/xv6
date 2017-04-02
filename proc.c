@@ -7,8 +7,6 @@
 #include "proc.h"
 #include "spinlock.h"
 
-static int g_policy = 0;
-
 struct {
   struct spinlock lock;
   struct proc proc[NPROC];
@@ -100,6 +98,9 @@ found:
 	  p->ntickets = 20;
 	  break;
   }
+
+  p->ctime = ticks;
+  p->ttime = p->stime = p->retime = p->rutime = 0;
 
   return p;
 }
@@ -266,8 +267,6 @@ exit(int status)
   end_op();
   proc->cwd = 0;
 
-  proc->exit_status = status;
-
   acquire(&ptable.lock);
 
   // Parent might be sleeping in wait(0).
@@ -284,6 +283,8 @@ exit(int status)
 
   // Jump into the scheduler, never to return.
   proc->state = ZOMBIE;
+  proc->exit_status = status;
+  proc->ttime = ticks;
   sched();
   panic("zombie exit");
 }
@@ -333,6 +334,34 @@ wait(int *status)
   }
 }
 
+int wait_stat(int *status, struct perf* performance) {
+	int pid = wait(status);
+
+	struct proc* p;
+	int found = 0;
+
+	if (pid != -1) {
+		acquire(&ptable.lock);
+		for (p = ptable.proc; p < &ptable.proc[NPROC] && !found; p++) {
+			if (p->pid == pid) {
+				performance->ctime = p->ctime;
+				performance->stime = p->stime;
+				performance->rutime = p->rutime;
+				performance->retime = p->retime;
+				performance->ttime = p->ttime;
+				found = 1;
+			}
+		}
+		release(&ptable.lock);
+
+		if (!found) {
+			panic("wait_stat: Failed to find pid of waited process");
+		}
+	}
+
+	return pid;
+}
+
 //PAGEBREAK: 42
 // Per-CPU process scheduler.
 // Each CPU calls scheduler() after setting itself up.
@@ -346,7 +375,7 @@ scheduler(void)
 {
   struct proc *p;
 
-  rand(ticks);
+  srand(ticks);
 
   for(;;){
     // Enable interrupts on this processor.
@@ -590,4 +619,22 @@ procdump(void)
     }
     cprintf("\n");
   }
+}
+
+void updateProcessTimes() {
+	struct proc *p;
+	acquire(&ptable.lock);
+	for (p = ptable.proc; p < &ptable.proc[NPROC]; p++) {
+		switch (p->state) {
+		case SLEEPING:
+			p->stime++;
+			break;
+		case RUNNABLE:
+			p->retime++;
+			break;
+		case RUNNING:
+			p->rutime++;
+		}
+	}
+	release(&ptable.lock);
 }

@@ -184,5 +184,13 @@ void            switchkvm(void);
 int             copyout(pde_t*, uint, void*, uint);
 void            clearpteu(pde_t *pgdir, char *uva);
 
+struct perf {
+	int ctime;
+	int ttime;
+	int stime;
+	int retime;
+	int rutime;
+};
+
 // number of elements in fixed-size array
 #define NELEM(x) (sizeof(x)/sizeof((x)[0]))

@@ -39,3 +39,11 @@ void* memset(void*, int, uint);
 void* malloc(uint);
 void free(void*);
 int atoi(const char*);
+
+struct perf {
+	int ctime;
+	int ttime;
+	int stime;
+	int retime;
+	int rutime;
+};
