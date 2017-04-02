@@ -425,12 +425,6 @@ sched(void)
     panic("sched interruptible");
   intena = cpu->intena;
 
-  if (g_policy == 2) {
-	  proc->ntickets = proc->ntickets - 1;
-	  if (proc->ntickets < 1)
-		  proc->ntickets = 1;
-  }
-
   swtch(&proc->context, cpu->scheduler);
   cpu->intena = intena;
 }
@@ -441,6 +435,13 @@ yield(void)
 {
   acquire(&ptable.lock);  //DOC: yieldlock
   proc->state = RUNNABLE;
+
+  if (g_policy == 2) {
+	  proc->ntickets = proc->ntickets - 1;
+	  if (proc->ntickets < 1)
+		  proc->ntickets = 1;
+  }
+
   sched();
   release(&ptable.lock);
 }
