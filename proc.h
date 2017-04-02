@@ -72,8 +72,6 @@ struct proc {
   int rutime;
 };
 
-static int g_policy = 0;
-
 void updateProcessTimes();
 
 // Process memory is laid out contiguously, low addresses first:

@@ -12,6 +12,8 @@ struct {
   struct proc proc[NPROC];
 } ptable;
 
+static int g_policy = 0;
+
 static struct proc *initproc;
 
 int nextpid = 1;
@@ -634,6 +636,8 @@ void updateProcessTimes() {
 			break;
 		case RUNNING:
 			p->rutime++;
+		default:
+			break;
 		}
 	}
 	release(&ptable.lock);
